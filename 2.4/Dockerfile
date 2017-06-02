@@ -21,6 +21,14 @@ RUN set -ex \
 		dpkg-dev \
 		libgdbm-dev \
 		ruby \
+		qt5-default \
+		libqt5webkit5-dev \
+		gstreamer1.0-plugins-base \
+		gstreamer1.0-tools \
+		gstreamer1.0-x \
+		xvfb \
+		openssh-client \
+		nodejs \
 	' \
 	&& apt-get update \
 	&& apt-get install -y --no-install-recommends $buildDeps \
@@ -59,7 +67,7 @@ RUN set -ex \
 	\
 	&& gem update --system "$RUBYGEMS_VERSION"
 
-ENV BUNDLER_VERSION 1.14.6
+ENV BUNDLER_VERSION 1.15.0
 
 RUN gem install bundler --version "$BUNDLER_VERSION"
 
