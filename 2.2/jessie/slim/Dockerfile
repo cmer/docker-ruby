@@ -19,10 +19,10 @@ RUN mkdir -p /usr/local/etc \
 		echo 'update: --no-document'; \
 	} >> /usr/local/etc/gemrc
 
-ENV RUBY_MAJOR 2.3
-ENV RUBY_VERSION 2.3.4
-ENV RUBY_DOWNLOAD_SHA256 341cd9032e9fd17c452ed8562a8d43f7e45bfe05e411d0d7d627751dd82c578c
-ENV RUBYGEMS_VERSION 2.6.12
+ENV RUBY_MAJOR 2.2
+ENV RUBY_VERSION 2.2.8
+ENV RUBY_DOWNLOAD_SHA256 37eafc15037396c26870f6a6c5bcd0658d14b46cd5e191a3b56d89dd22d561b0
+ENV RUBYGEMS_VERSION 2.6.14
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
@@ -76,13 +76,16 @@ RUN set -ex \
 	&& make -j "$(nproc)" \
 	&& make install \
 	\
+	&& dpkg-query --show --showformat '${package}\n' \
+		| grep -P '^libreadline\d+$' \
+		| xargs apt-mark manual \
 	&& apt-get purge -y --auto-remove $buildDeps \
 	&& cd / \
 	&& rm -r /usr/src/ruby \
 	\
 	&& gem update --system "$RUBYGEMS_VERSION"
 
-ENV BUNDLER_VERSION 1.14.6
+ENV BUNDLER_VERSION 1.15.4
 
 RUN gem install bundler --version "$BUNDLER_VERSION"
 

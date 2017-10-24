@@ -1,4 +1,16 @@
-FROM alpine:3.4
+FROM debian:jessie
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		bzip2 \
+		ca-certificates \
+		libffi-dev \
+		libgdbm3 \
+		libssl-dev \
+		libyaml-dev \
+		procps \
+		zlib1g-dev \
+	&& rm -rf /var/lib/apt/lists/*
 
 # skip installing gem documentation
 RUN mkdir -p /usr/local/etc \
@@ -7,43 +19,35 @@ RUN mkdir -p /usr/local/etc \
 		echo 'update: --no-document'; \
 	} >> /usr/local/etc/gemrc
 
-ENV RUBY_MAJOR 2.2
-ENV RUBY_VERSION 2.2.7
-ENV RUBY_DOWNLOAD_SHA256 234c8aee6543da9efd67008e6e7ee740d41ed57a52e797f65043c3b5ec3bcb53
-ENV RUBYGEMS_VERSION 2.6.12
+ENV RUBY_MAJOR 2.3
+ENV RUBY_VERSION 2.3.5
+ENV RUBY_DOWNLOAD_SHA256 7d3a7dabb190c2da06c963063342ca9a214bcd26f2158e904f0ec059b065ffda
+ENV RUBYGEMS_VERSION 2.6.14
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
-# readline-dev vs libedit-dev: https://bugs.ruby-lang.org/issues/11869 and https://github.com/docker-library/ruby/issues/75
 RUN set -ex \
 	\
-	&& apk add --no-cache --virtual .ruby-builddeps \
+	&& buildDeps=' \
 		autoconf \
 		bison \
-		bzip2 \
-		bzip2-dev \
-		ca-certificates \
-		coreutils \
-		dpkg-dev dpkg \
+		dpkg-dev \
 		gcc \
-		gdbm-dev \
-		glib-dev \
-		libc-dev \
-		libffi-dev \
+		libbz2-dev \
+		libgdbm-dev \
+		libglib2.0-dev \
+		libncurses-dev \
+		libreadline-dev \
 		libxml2-dev \
 		libxslt-dev \
-		linux-headers \
 		make \
-		ncurses-dev \
-		openssl \
-		openssl-dev \
-		procps \
-		readline-dev \
 		ruby \
-		tar \
-		yaml-dev \
-		zlib-dev \
-		xz \
+		wget \
+		xz-utils \
+	' \
+	&& apt-get update \
+	&& apt-get install -y --no-install-recommends $buildDeps \
+	&& rm -rf /var/lib/apt/lists/* \
 	\
 	&& wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz" \
 	&& echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum -c - \
@@ -65,8 +69,6 @@ RUN set -ex \
 	\
 	&& autoconf \
 	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
-# the configure script does not detect isnan/isinf as macros
-	&& export ac_cv_func_isnan=yes ac_cv_func_isinf=yes \
 	&& ./configure \
 		--build="$gnuArch" \
 		--disable-install-doc \
@@ -74,28 +76,16 @@ RUN set -ex \
 	&& make -j "$(nproc)" \
 	&& make install \
 	\
-	&& runDeps="$( \
-		scanelf --needed --nobanner --recursive /usr/local \
-			| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
-			| sort -u \
-			| xargs -r apk info --installed \
-			| sort -u \
-	)" \
-	&& apk add --virtual .ruby-rundeps $runDeps \
-		bzip2 \
-		ca-certificates \
-		libffi-dev \
-		openssl-dev \
-		yaml-dev \
-		procps \
-		zlib-dev \
-	&& apk del .ruby-builddeps \
+	&& dpkg-query --show --showformat '${package}\n' \
+		| grep -P '^libreadline\d+$' \
+		| xargs apt-mark manual \
+	&& apt-get purge -y --auto-remove $buildDeps \
 	&& cd / \
 	&& rm -r /usr/src/ruby \
 	\
 	&& gem update --system "$RUBYGEMS_VERSION"
 
-ENV BUNDLER_VERSION 1.14.6
+ENV BUNDLER_VERSION 1.15.4
 
 RUN gem install bundler --version "$BUNDLER_VERSION"
 

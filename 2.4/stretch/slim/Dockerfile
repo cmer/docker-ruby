@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM debian:stretch
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
@@ -19,10 +19,10 @@ RUN mkdir -p /usr/local/etc \
 		echo 'update: --no-document'; \
 	} >> /usr/local/etc/gemrc
 
-ENV RUBY_MAJOR 2.1
-ENV RUBY_VERSION 2.1.10
-ENV RUBY_DOWNLOAD_SHA256 5be9f8d5d29d252cd7f969ab7550e31bbb001feb4a83532301c0dd3b5006e148
-ENV RUBYGEMS_VERSION 2.6.12
+ENV RUBY_MAJOR 2.4
+ENV RUBY_VERSION 2.4.2
+ENV RUBY_DOWNLOAD_SHA256 748a8980d30141bd1a4124e11745bb105b436fb1890826e0d2b9ea31af27f735
+ENV RUBYGEMS_VERSION 2.6.14
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
@@ -76,13 +76,16 @@ RUN set -ex \
 	&& make -j "$(nproc)" \
 	&& make install \
 	\
+	&& dpkg-query --show --showformat '${package}\n' \
+		| grep -P '^libreadline\d+$' \
+		| xargs apt-mark manual \
 	&& apt-get purge -y --auto-remove $buildDeps \
 	&& cd / \
 	&& rm -r /usr/src/ruby \
 	\
 	&& gem update --system "$RUBYGEMS_VERSION"
 
-ENV BUNDLER_VERSION 1.14.6
+ENV BUNDLER_VERSION 1.15.4
 
 RUN gem install bundler --version "$BUNDLER_VERSION"
 

@@ -7,10 +7,10 @@ RUN mkdir -p /usr/local/etc \
 		echo 'update: --no-document'; \
 	} >> /usr/local/etc/gemrc
 
-ENV RUBY_MAJOR 2.2
-ENV RUBY_VERSION 2.2.7
-ENV RUBY_DOWNLOAD_SHA256 234c8aee6543da9efd67008e6e7ee740d41ed57a52e797f65043c3b5ec3bcb53
-ENV RUBYGEMS_VERSION 2.6.12
+ENV RUBY_MAJOR 2.4
+ENV RUBY_VERSION 2.4.2
+ENV RUBY_DOWNLOAD_SHA256 748a8980d30141bd1a4124e11745bb105b436fb1890826e0d2b9ea31af27f735
+ENV RUBYGEMS_VERSION 2.6.14
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
@@ -22,8 +22,24 @@ RUN set -ex \
 		libgdbm-dev \
 		ruby \
 	' \
+	&& devDeps=' \
+		xvfb \
+		xauth \
+		qt5-default \
+		libqt5webkit5-dev \
+		gstreamer1.0-plugins-base \
+		gstreamer1.0-tools \
+		gstreamer1.0-x \
+		openssh-client \
+		nodejs \
+		google-chrome-stable \
+	' \
+	&& wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+	&& echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
 	&& apt-get update \
+	&& apt-get install -y --no-install-recommends apt-utils \
 	&& apt-get install -y --no-install-recommends $buildDeps \
+	&& apt-get install -y --no-install-recommends $devDeps \
 	&& rm -rf /var/lib/apt/lists/* \
 	\
 	&& wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz" \
@@ -59,7 +75,7 @@ RUN set -ex \
 	\
 	&& gem update --system "$RUBYGEMS_VERSION"
 
-ENV BUNDLER_VERSION 1.14.6
+ENV BUNDLER_VERSION 1.15.4
 
 RUN gem install bundler --version "$BUNDLER_VERSION"
 
